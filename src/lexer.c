@@ -96,8 +96,11 @@ Token *next_token(Lexer *lexer)
             printf("Identifier: %s\n", buffer);
             if (strcmp(buffer, "say") == 0)
                 return new_token(TOKEN_SAY, "say");
-            if (strcmp(buffer, "start") == 0)
-                return new_token(TOKEN_START, "start");
+            if (strcmp(buffer, "start") == 0 && lexer->current_char == ':')
+            {
+                advance(lexer);
+                return new_token(TOKEN_START, "start:");
+            }
             if (strcmp(buffer, "end") == 0)
                 return new_token(TOKEN_END, "end");
             return new_token(TOKEN_UNKNOWN, buffer);
