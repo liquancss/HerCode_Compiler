@@ -167,7 +167,12 @@ ASTNode **parse_program(Parser *parser, int *count)
 {
     *count = 0;
     ASTNode **nodes = malloc(MAX_STATEMENTS * sizeof(ASTNode *));
-
+    // 跳过开头的所有换行符（可能包括由注释和空行产生的）
+    while (parser->current_token->type == TOKEN_NEWLINE)
+    {
+        free_token(parser->current_token); // 释放当前token
+        parser->current_token = next_token(parser->lexer);
+    }
     // 程序必须以start开始
     if (parser->current_token->type != TOKEN_START)
     {

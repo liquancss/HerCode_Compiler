@@ -59,6 +59,16 @@ Token *next_token(Lexer *lexer)
 
     while (lexer->current_char != '\0')
     {
+        if (lexer->current_char == '#')
+        {
+            while (lexer->current_char != '\n' && lexer->current_char != '\0')
+            {
+                advance(lexer);
+            }
+            printf("[LEXER] Skipped a comment\n");
+            continue; // 跳过注释后继续处理其他token
+        }
+
         if (lexer->current_char == '\n')
         {
             Token *t = handle_newline_and_indent(lexer);
@@ -142,8 +152,8 @@ Token *handle_newline_and_indent(Lexer *lexer)
 
     int new_indent = 0;
 
-    // 计算当前行的缩进（只考虑空格）
-    while (lexer->current_char == ' ')
+    // 计算当前行的缩进
+    while (lexer->current_char == ' ' || lexer->current_char == '\t')
     {
         new_indent++;
         advance(lexer);

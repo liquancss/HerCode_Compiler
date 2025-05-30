@@ -8,7 +8,7 @@ set(CMAKE_C_STANDARD 11)
 include_directories(include)
 
 # 生成可执行文件
-add_executable(say_compiler
+add_executable(hercode_compiler
     src/main.c
     src/lexer.c
     src/parser.c
@@ -16,5 +16,4 @@ add_executable(say_compiler
     src/ast.c
 )
 
-# 安装目标
-install(TARGETS say_compiler DESTINATION bin)
+install(TARGETS hercode_compiler DESTINATION bin)
