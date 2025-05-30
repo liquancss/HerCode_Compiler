@@ -15,5 +15,6 @@ add_executable(hercode_compiler
     src/codegen.c
     src/ast.c
 )
+add_compile_options(-Wall -Werror -Wstrict-prototypes -Wmissing-prototypes -O2 -Os)
 
 install(TARGETS hercode_compiler DESTINATION bin)
