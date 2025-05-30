@@ -1,0 +1,7 @@
+C:/Users/MuWinds/Documents/Coding Project/Hercode_Compiler/build/CMakeFiles/say_compiler.dir
+C:/Users/MuWinds/Documents/Coding Project/Hercode_Compiler/build/CMakeFiles/edit_cache.dir
+C:/Users/MuWinds/Documents/Coding Project/Hercode_Compiler/build/CMakeFiles/rebuild_cache.dir
+C:/Users/MuWinds/Documents/Coding Project/Hercode_Compiler/build/CMakeFiles/list_install_components.dir
+C:/Users/MuWinds/Documents/Coding Project/Hercode_Compiler/build/CMakeFiles/install.dir
+C:/Users/MuWinds/Documents/Coding Project/Hercode_Compiler/build/CMakeFiles/install/local.dir
+C:/Users/MuWinds/Documents/Coding Project/Hercode_Compiler/build/CMakeFiles/install/strip.dir
