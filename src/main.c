@@ -103,7 +103,7 @@ int main(int argc, char *argv[])
     char *c_header = NULL;
     char *hercode_source = NULL;
     separate_header(source, "Hello! Her World", &c_header, &hercode_source);
-
+    printf("C Code:\n%s\n", c_header);
     // 验证分离结果
     if (hercode_source == NULL)
         hercode_source = source; // 如果分离失败，使用整个文件

@@ -78,7 +78,22 @@ void generate_c_code(const char *c_header, ASTNode **nodes, int count, FILE *out
     fprintf(output, "\nint main() {\n");
     // 如果有外部C代码头文件，写入它
     if (c_header != NULL)
-        fprintf(output, "    %s\n", c_header);
+    {
+        // 逐行处理 c_header
+        const char *start = c_header;
+        const char *end;
+        while ((end = strchr(start, '\n')) != NULL)
+        { // 找到换行符
+            // 输出：制表符 + 当前行（不含换行符）
+            fprintf(output, "\t%.*s\n", (int)(end - start), start);
+            start = end + 1; // 移到下一行
+        }
+        // 输出剩余部分（最后一行）
+        if (*start != '\0')
+        {
+            fprintf(output, "\t%s\n", start);
+        }
+    }
     for (int i = 0; i < count; i++)
     {
         if (nodes[i]->type == STMT_SAY)
