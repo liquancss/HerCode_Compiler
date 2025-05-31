@@ -4,7 +4,6 @@
 #include <string.h>
 
 #define MAX_STATEMENTS 100
-// 添加此函数以获取token类型的字符串表示
 const char *token_type_to_string(TokenType type)
 {
     switch (type)
@@ -19,8 +18,6 @@ const char *token_type_to_string(TokenType type)
         return "STRING";
     case TOKEN_SEMI:
         return "SEMI";
-    case TOKEN_START:
-        return "START";
     case TOKEN_END:
         return "END";
     case TOKEN_NEWLINE:
@@ -29,6 +26,12 @@ const char *token_type_to_string(TokenType type)
         return "INDENT";
     case TOKEN_DEDENT:
         return "DEDENT";
+    case TOKEN_FUNCTION:
+        return "FUNCTION";
+    case TOKEN_IDENTIFIER:
+        return "IDENTIFIER";
+    case TOKEN_COLON:
+        return "COLON";
     default:
         return "UNRECOGNIZED";
     }
@@ -68,16 +71,13 @@ void eat(Parser *parser, TokenType type)
     }
     else
     {
-        printf("Syntax error: Unexpected token\n");
+        printf("Syntax error: Expected token type %d (%s), but got token type %d (%s)\n",
+               type, token_type_to_string(type), parser->current_token->type, token_type_to_string(parser->current_token->type));
         exit(1);
     }
 }
-
 ASTNode *parse_statement(Parser *parser)
 {
-    // 记录起始缩进级别
-    int initial_indent = parser->current_indent;
-
     // 跳过无关token
     while (parser->current_token->type == TOKEN_DEDENT ||
            parser->current_token->type == TOKEN_NEWLINE ||
@@ -92,48 +92,169 @@ ASTNode *parse_statement(Parser *parser)
         else if (parser->current_token->type == TOKEN_DEDENT)
         {
             parser->current_indent--;
-
-            // 检查是否退出到父级代码块
-            if (parser->current_indent <= initial_indent)
-            {
-                return NULL; // 当前语句块结束
-            }
         }
 
         eat(parser, parser->current_token->type);
     }
 
-    // 确保当前token是有效语句开始
-    if (parser->current_token->type != TOKEN_SAY)
+    // 打印调试信息
+    printf("[PARSER] parse_statement token: %s (%d)\n",
+           token_type_to_string(parser->current_token->type),
+           parser->current_token->type);
+
+    // 识别不同语句类型
+    if (parser->current_token->type == TOKEN_SAY)
     {
-        fprintf(stderr, "Syntax error: Expected statement. Got token type %d (%s)\n",
+        return parse_say_statement(parser);
+    }
+    else if (parser->current_token->type == TOKEN_FUNCTION)
+    {
+        return parse_function_definition(parser);
+    }
+    else if (parser->current_token->type == TOKEN_IDENTIFIER)
+    {
+        return parse_function_call(parser);
+    }
+
+    // 未知语句类型
+    fprintf(stderr, "Syntax error: Unknown statement. Got token %d (%s)\n",
+            parser->current_token->type,
+            token_type_to_string(parser->current_token->type));
+    exit(1);
+}
+
+ASTNode *parse_say_statement(Parser *parser)
+{
+    eat(parser, TOKEN_SAY); // 消耗'say' token
+
+    // 确保下一个token是字符串
+    if (parser->current_token->type != TOKEN_STRING)
+    {
+        fprintf(stderr, "Syntax error: Expected string after 'say'\n");
+        exit(1);
+    }
+
+    char *str_value = parser->current_token->value ? strdup(parser->current_token->value) : strdup("");
+
+    eat(parser, TOKEN_STRING); // 消耗字符串token
+
+    return create_say_node(str_value);
+}
+
+ASTNode *parse_function_definition(Parser *parser)
+{
+    printf("[PARSER] Parsing function definition\n");
+
+    // 消耗 function 关键字
+    eat(parser, TOKEN_FUNCTION);
+
+    // 检查函数名
+    if (parser->current_token->type != TOKEN_IDENTIFIER)
+    {
+        fprintf(stderr, "Syntax error: Expected function name after 'function'. Got token %d (%s)\n",
+                parser->current_token->type,
+                token_type_to_string(parser->current_token->type));
+        exit(1);
+    }
+    char *func_name = strdup(parser->current_token->value);
+    eat(parser, TOKEN_IDENTIFIER);
+    printf("  Function name: '%s'\n", func_name);
+
+    // 检查冒号
+    if (parser->current_token->type != TOKEN_COLON)
+    {
+        fprintf(stderr, "Syntax error: Expected colon after function name. Got token %d (%s)\n",
+                parser->current_token->type,
+                token_type_to_string(parser->current_token->type));
+        exit(1);
+    }
+    eat(parser, TOKEN_COLON);
+
+    // 处理函数定义后的可能空白
+    int first_token = 1;
+
+    // 解析函数体
+    ASTNode **body = malloc(MAX_STATEMENTS * sizeof(ASTNode *));
+    int body_count = 0;
+    parser->current_indent = -1; // 标记函数体缩进级别未设置
+
+    // 直到遇到end或DEDENT
+    while (1)
+    {
+        // 处理空白token
+        while (parser->current_token->type == TOKEN_NEWLINE ||
+               parser->current_token->type == TOKEN_INDENT ||
+               parser->current_token->type == TOKEN_DEDENT)
+        {
+
+            // 第一次遇到缩进，设置当前缩进级别
+            if (parser->current_token->type == TOKEN_INDENT &&
+                parser->current_indent == -1)
+            {
+                parser->current_indent = parser->lexer->indent_stack[parser->lexer->indent_top];
+                printf("  Function body indent set to: %d\n", parser->current_indent);
+            }
+
+            eat(parser, parser->current_token->type);
+        }
+
+        // 检查结束条件
+        if (parser->current_token->type == TOKEN_END)
+        {
+            break;
+        }
+
+        // 如果遇到DEDENT，检查是否已经返回到函数定义层级
+        if (parser->current_token->type == TOKEN_DEDENT &&
+            parser->current_indent != -1 &&
+            parser->lexer->indent_stack[parser->lexer->indent_top] < parser->current_indent)
+        {
+            printf("  Exiting function body at indent: %d (current: %d)\n",
+                   parser->current_indent, parser->lexer->indent_stack[parser->lexer->indent_top]);
+            break;
+        }
+
+        // 遇到函数体中的语句
+        printf("  Parsing function body statement (%s)\n", token_type_to_string(parser->current_token->type));
+        body[body_count] = parse_statement(parser);
+        if (body[body_count] != NULL)
+        {
+            body_count++;
+        }
+    }
+
+    // 消耗end关键字
+    if (parser->current_token->type == TOKEN_END)
+    {
+        eat(parser, TOKEN_END);
+    }
+    else
+    {
+        fprintf(stderr, "Syntax error: Expected 'end' to close function definition. Got %d (%s)\n",
                 parser->current_token->type,
                 token_type_to_string(parser->current_token->type));
         exit(1);
     }
 
-    // 解析say语句
-    if (parser->current_token->type == TOKEN_SAY)
+    // 重置缩进级别
+    parser->current_indent = 0;
+    printf("Successfully parsed function '%s' with %d statements\n", func_name, body_count);
+
+    return create_function_def_node(func_name, body, body_count);
+}
+
+ASTNode *parse_function_call(Parser *parser)
+{
+    if (parser->current_token->type != TOKEN_IDENTIFIER)
     {
-        eat(parser, TOKEN_SAY);
-
-        if (parser->current_token->type != TOKEN_STRING)
-        {
-            fprintf(stderr, "Syntax error: Expected string after 'say'\n");
-            exit(1);
-        }
-
-        char *str_value = parser->current_token->value ? strdup(parser->current_token->value) : strdup("");
-
-        eat(parser, TOKEN_STRING);
-
-        return create_say_node(str_value);
+        fprintf(stderr, "Syntax error: Expected function name\n");
+        exit(1);
     }
 
-    // 未知语句类型
-    fprintf(stderr, "Syntax error: Unknown statement type %d\n",
-            parser->current_token->type);
-    exit(1);
+    char *func_name = strdup(parser->current_token->value);
+    eat(parser, TOKEN_IDENTIFIER);
+
+    return create_function_call_node(func_name);
 }
 
 ASTNode *parse_block(Parser *parser, int *count)
@@ -167,22 +288,55 @@ ASTNode **parse_program(Parser *parser, int *count)
 {
     *count = 0;
     ASTNode **nodes = malloc(MAX_STATEMENTS * sizeof(ASTNode *));
-    // 跳过开头的所有换行符（可能包括由注释和空行产生的）
-    while (parser->current_token->type == TOKEN_NEWLINE)
+
+    // 允许函数定义出现在程序开头
+    while (parser->current_token->type != TOKEN_EOF)
     {
-        free_token(parser->current_token); // 释放当前token
-        parser->current_token = next_token(parser->lexer);
+        // 跳过缩进和换行符
+        while (parser->current_token->type == TOKEN_NEWLINE ||
+               parser->current_token->type == TOKEN_INDENT ||
+               parser->current_token->type == TOKEN_DEDENT)
+        {
+            eat(parser, parser->current_token->type);
+        }
+
+        // 检查是否达到文件末尾
+        if (parser->current_token->type == TOKEN_EOF)
+        {
+            break;
+        }
+
+        // 检查是否遇到start关键字
+        if (parser->current_token->type == TOKEN_START)
+        {
+            break;
+        }
+
+        // 解析函数定义
+        if (*count >= MAX_STATEMENTS)
+        {
+            fprintf(stderr, "Error: Too many statements\n");
+            exit(1);
+        }
+
+        // 解析其他语句（包括函数定义）
+        ASTNode *node = parse_statement(parser);
+        if (node)
+        {
+            nodes[(*count)++] = node;
+        }
     }
+
     // 程序必须以start开始
     if (parser->current_token->type != TOKEN_START)
     {
-        fprintf(stderr, "Syntax error: Program must start with 'start'\n");
+        fprintf(stderr, "Syntax error: Program must contain 'start:' block\n");
         exit(1);
     }
-    eat(parser, TOKEN_START);
+    eat(parser, TOKEN_START); // 消耗start token
 
-    // 处理可能的换行
-    if (parser->current_token->type == TOKEN_NEWLINE)
+    // 处理可选的换行符
+    while (parser->current_token->type == TOKEN_NEWLINE)
     {
         eat(parser, TOKEN_NEWLINE);
     }
@@ -190,35 +344,40 @@ ASTNode **parse_program(Parser *parser, int *count)
     // 必须有缩进
     if (parser->current_token->type != TOKEN_INDENT)
     {
-        fprintf(stderr, "Syntax error: Expected indentation after 'start'\n");
+        fprintf(stderr, "Syntax error: Expected indentation after 'start:'\n");
         exit(1);
     }
     eat(parser, TOKEN_INDENT);
     parser->current_indent++;
 
     // 解析程序主体
-    while (parser->current_token->type != TOKEN_EOF &&
-           parser->current_token->type != TOKEN_END)
+    while (parser->current_token->type != TOKEN_EOF)
     {
-        // 处理语句间换行
+        // 处理缩出（从当前缩进级别退出）
+        if (parser->current_token->type == TOKEN_DEDENT)
+        {
+            eat(parser, TOKEN_DEDENT);
+            parser->current_indent--;
+
+            // 当缩进级别回到0时，准备退出程序块
+            if (parser->current_indent == 0)
+            {
+                break;
+            }
+            continue;
+        }
+
+        // 跳过换行符
         if (parser->current_token->type == TOKEN_NEWLINE)
         {
             eat(parser, TOKEN_NEWLINE);
             continue;
         }
 
-        // 处理缩出
-        if (parser->current_token->type == TOKEN_DEDENT)
+        // 处理end关键字（提前退出）
+        if (parser->current_token->type == TOKEN_END)
         {
-            eat(parser, TOKEN_DEDENT);
-            parser->current_indent--;
-
-            // 检查是否回到程序开始缩进级别
-            if (parser->current_indent == 0)
-            {
-                break;
-            }
-            continue;
+            break;
         }
 
         // 确保不超过最大语句数
@@ -232,43 +391,46 @@ ASTNode **parse_program(Parser *parser, int *count)
         nodes[(*count)++] = parse_statement(parser);
     }
 
-    // 处理程序结束逻辑
-    if (parser->current_token->type == TOKEN_DEDENT)
-        eat(parser, TOKEN_DEDENT);
-
-    // 检查是否在文件结束前找到了end关键字
-    if (parser->current_token->type == TOKEN_EOF)
+    // 在缩出循环后，跳过所有换行符和DEDENT
+    while (parser->current_token->type == TOKEN_NEWLINE ||
+           parser->current_token->type == TOKEN_DEDENT)
     {
-        // 如果缩进级别正确，允许无end的程序
-        if (parser->current_indent == 0)
-        {
-            printf("[PARSER] Program ends without explicit 'end', but indent level is correct\n");
-            *count = 0; // 返回空程序
-            return nodes;
-        }
-        fprintf(stderr, "Syntax error: Unexpected end of file. Expected 'end' at end of program\n");
-        exit(1);
+        eat(parser, parser->current_token->type);
     }
 
     // 处理end关键字
-    if (parser->current_token->type == TOKEN_END)
+    if (parser->current_token->type == TOKEN_EOF)
     {
-        eat(parser, TOKEN_END);
+        fprintf(stderr, "Syntax error: Program must end with 'end'\n");
+        exit(1);
     }
-    else
+
+    if (parser->current_token->type != TOKEN_END)
     {
         fprintf(stderr, "Syntax error: Expected 'end' at end of program. Got token type %d (%s)\n",
                 parser->current_token->type,
                 token_type_to_string(parser->current_token->type));
         exit(1);
     }
+    eat(parser, TOKEN_END);
 
     // 确保缩进级别回到0
     if (parser->current_indent != 0)
     {
-        fprintf(stderr, "Syntax error: Missing dedent at end of program (indent level=%d)\n",
-                parser->current_indent);
-        exit(1);
+        // 处理剩余的缩出标记
+        while (parser->current_token->type == TOKEN_DEDENT)
+        {
+            eat(parser, TOKEN_DEDENT);
+            parser->current_indent--;
+        }
+
+        // 如果还有剩余的缩进级别
+        if (parser->current_indent != 0)
+        {
+            fprintf(stderr, "Syntax error: Missing dedent at end of program (indent level=%d)\n",
+                    parser->current_indent);
+            exit(1);
+        }
     }
 
     return nodes;

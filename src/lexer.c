@@ -68,13 +68,19 @@ Token *next_token(Lexer *lexer)
             printf("[LEXER] Skipped a comment\n");
             continue; // 跳过注释后继续处理其他token
         }
-
-        if (lexer->current_char == '\n')
+        // 处理单字符分隔符
+        switch (lexer->current_char)
         {
-            Token *t = handle_newline_and_indent(lexer);
-            if (t)
-                return t;
-            continue;
+        case ':': // 冒号
+            advance(lexer);
+            return new_token(TOKEN_COLON, ":");
+        case ';': // 分号（如果需要）
+            advance(lexer);
+            return new_token(TOKEN_SEMI, ";");
+        case '\n': // 换行符（已经处理，但为了完整）
+            return handle_newline_and_indent(lexer);
+        default:
+            break;
         }
 
         if (isspace(lexer->current_char))
@@ -87,10 +93,17 @@ Token *next_token(Lexer *lexer)
         {
             char buffer[256];
             int i = 0;
-            while (isalnum(lexer->current_char) && i < 255)
+            // 允许字母、数字和下划线
+            while (isalnum(lexer->current_char) || lexer->current_char == '_')
             {
-                buffer[i++] = lexer->current_char;
-                advance(lexer);
+                if (i < 255)
+                {
+                    buffer[i++] = lexer->current_char;
+                    advance(lexer);
+                }
+                else
+                    // 标识符太长，跳过剩余部分
+                    advance(lexer);
             }
             buffer[i] = '\0';
             printf("Identifier: %s\n", buffer);
@@ -101,9 +114,12 @@ Token *next_token(Lexer *lexer)
                 advance(lexer);
                 return new_token(TOKEN_START, "start:");
             }
+            // 检查函数关键字
+            if (strcmp(buffer, "function") == 0)
+                return new_token(TOKEN_FUNCTION, "function");
             if (strcmp(buffer, "end") == 0)
                 return new_token(TOKEN_END, "end");
-            return new_token(TOKEN_UNKNOWN, buffer);
+            return new_token(TOKEN_IDENTIFIER, buffer);
         }
 
         if (lexer->current_char == '"')

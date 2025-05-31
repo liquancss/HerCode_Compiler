@@ -12,7 +12,10 @@ typedef enum
     TOKEN_END,
     TOKEN_NEWLINE,
     TOKEN_INDENT,
-    TOKEN_DEDENT
+    TOKEN_DEDENT,
+    TOKEN_COLON,
+    TOKEN_FUNCTION,  // function 关键字
+    TOKEN_IDENTIFIER // 函数名
 } TokenType;
 
 typedef struct Token

@@ -8,10 +8,12 @@
 HerCode语法：
 ```
 Hello! Her World
-#程序从这里开始
+function say_hello:
+	say "Hello! Her World" #注释
+	say "编程很美,也属于你" #注释2
+end
 start:
-    say "Hello! Her World"
-    say "编程很美,也属于你"
+	say_hello
 end
 ```
 
@@ -21,7 +23,6 @@ end
 ```
 第一个参数是hercode的代码，第二个是输出文件
 
-函数部分先挖坑
 
 ## 20250531更新
 

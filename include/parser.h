@@ -1,6 +1,3 @@
-#ifndef PARSER_H
-#define PARSER_H
-
 #include "ast.h"
 #include "lexer.h"
 
@@ -19,5 +16,6 @@ void free_token(Token *token);
 ASTNode *parse_statement(Parser *parser);
 ASTNode *parse_block(Parser *parser, int *count);
 ASTNode **parse_program(Parser *parser, int *count);
-
-#endif
+ASTNode *parse_say_statement(Parser *parser);
+ASTNode *parse_function_definition(Parser *parser);
+ASTNode *parse_function_call(Parser *parser);
