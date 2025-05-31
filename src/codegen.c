@@ -41,7 +41,19 @@ char *escape_string(const char *input)
 void generate_c_code(const char *c_header, ASTNode **nodes, int count, FILE *output)
 {
     // 写入C头文件部分
-    fprintf(output, "#include <stdio.h>\n\n");
+    fprintf(output, "#include <stdio.h>\n");
+    fprintf(output, "#include <stdlib.h>\n");
+    fprintf(output, "#include <string.h>\n");
+    fprintf(output, "#include <math.h>\n");
+    fprintf(output, "#include <time.h>\n");
+    fprintf(output, "#include <ctype.h>\n");
+    fprintf(output, "#include <float.h>\n");
+    fprintf(output, "#include <assert.h>\n");
+    fprintf(output, "#include <errno.h>\n");
+    fprintf(output, "#include <stddef.h>\n");
+    fprintf(output, "#include <signal.h>\n");
+    fprintf(output, "#include <setjmp.h>\n");
+    fprintf(output, "#include <locale.h>\n\n");
 
     // 首先收集所有函数定义
     global_functions = malloc(MAX_FUNCTIONS * sizeof(FunctionDef *));
@@ -64,11 +76,11 @@ void generate_c_code(const char *c_header, ASTNode **nodes, int count, FILE *out
         fprintf(output, "void function_%s();\n", global_functions[i]->name);
     // 生成main函数
     fprintf(output, "\nint main() {\n");
+    // 如果有外部C代码头文件，写入它
+    if (c_header != NULL)
+        fprintf(output, "    %s\n", c_header);
     for (int i = 0; i < count; i++)
     {
-        // 如果有外部C代码头文件，写入它
-        if (c_header != NULL)
-            fprintf(output, "    %s\n", c_header);
         if (nodes[i]->type == STMT_SAY)
             fprintf(output, "    printf(\"%%s\\n\", \"%s\");\n", nodes[i]->value);
         else if (nodes[i]->type == STMT_FUNCTION_CALL)

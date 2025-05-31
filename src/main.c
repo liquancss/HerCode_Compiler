@@ -106,9 +106,7 @@ int main(int argc, char *argv[])
 
     // 验证分离结果
     if (hercode_source == NULL)
-    {
         hercode_source = source; // 如果分离失败，使用整个文件
-    }
 
     // 输出分离结果用于调试
     printf("HerCode Source to Parse:\n%s\n", hercode_source);
