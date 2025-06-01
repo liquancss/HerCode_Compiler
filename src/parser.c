@@ -103,16 +103,13 @@ ASTNode *parse_statement(Parser *parser)
            parser->current_token->type);
 
     // 识别不同语句类型
-    if (parser->current_token->type == TOKEN_SAY)
+    switch (parser->current_token->type)
     {
+    case TOKEN_SAY:
         return parse_say_statement(parser);
-    }
-    else if (parser->current_token->type == TOKEN_FUNCTION)
-    {
+    case TOKEN_FUNCTION:
         return parse_function_definition(parser);
-    }
-    else if (parser->current_token->type == TOKEN_IDENTIFIER)
-    {
+    case TOKEN_IDENTIFIER:
         return parse_function_call(parser);
     }
 
