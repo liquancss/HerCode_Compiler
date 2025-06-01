@@ -7,13 +7,13 @@
 
 HerCode语法：
 ```
-Hello! Her World
-function say_hello:
-	say "Hello! Her World" #注释
+Shello! Her World
+function say_shello:
+	say "shello! Her World" #注释
 	say "编程很美,也属于你" #注释2
 end
 start:
-	say_hello
+	say_shello
 end
 ```
 
@@ -50,11 +50,11 @@ Hello! Her World
 #say 输出一句温暖的话
 # end 结束函数或代码块
 function you_can_do_this:
-	say "Hello Her World"
+	say "Shello Her World"
 	say "看啥？Python不比这好用？"
 end
 start:
 	you_can_do_this
 end
 ```
-在Hello! Her World之前，代码都是C代码，直接放到main函数下，注释和C语言一样用//，在这之后就得是HerCode的写法了，注释就必须得用#
+在Shello! Her World之前，代码都是C代码，直接放到main函数下，注释和C语言一样用//，在这之后就得是HerCode的写法了，注释就必须得用#
